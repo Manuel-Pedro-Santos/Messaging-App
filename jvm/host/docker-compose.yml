@@ -1,0 +1,59 @@
+services:
+  # Just a machine running ubuntu, with 'dig' installed so that we can observe the docker compose environment.
+  ubuntu:
+    container_name: ubuntu
+    image: ubuntu
+    tty: true
+
+  postgres-tests:
+    container_name: postgres-test
+    image: postgres-test
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=postgres
+    ports:
+      - 5433:5432
+
+  # agendify-jvm-1 and agendify-jvm-2 are used to illustrate scenarios with a fixed number of servers
+  # with static and well know names.
+  jvm-1:
+    container_name: jvm-1
+    hostname: jvm-1
+    image: jvm
+    environment:
+      PORT: 8081
+      DB_URL: "jdbc:postgresql://postgres-test:5432/db?user=postgres&password=postgres"
+    ports:
+      - 8081:8081
+  jvm-2:
+    container_name: jvm-2
+    hostname: jvm-2
+    image: jvm
+    environment:
+      PORT: 8082
+      DB_URL: "jdbc:postgresql://postgres-test:5432/db?user=postgres&password=postgres"
+    ports:
+      - 8082:8082
+
+  # agendify-jvm-dynamic is used to illustrate scenarios with a dynamic number of servers
+  # without static and well know names.
+  # We will use docker compose scaling to create multiple instances of this service
+  jvm-dynamic:
+    image: jvm
+    hostname: jvm-dynamic
+    environment:
+      PORT: 8080
+      DB_URL: "jdbc:postgresql://postgres-test:5432/db?user=postgres&password=postgres"
+
+  # The service running the load-balancer
+  nginx:
+    container_name: nginx
+    image: nginx
+    ports:
+      - 8080:8080
+      - 8088:8088
+    depends_on:
+      - jvm-1
+      - jvm-2
+      - jvm-dynamic
